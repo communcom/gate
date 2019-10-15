@@ -2,7 +2,7 @@ const jayson = require('jayson');
 const core = require('gls-core-service');
 const { Logger, RpcObject } = core.utils;
 const { Connector, Basic } = core.services;
-const FrontendGate = require('./service/FrontendGate');
+const FrontendGate = require('./FrontendGate');
 const env = require('../env');
 
 class Broker extends Basic {
