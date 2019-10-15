@@ -21,8 +21,7 @@
 {
   _frontendGate, // флаг формата фронтенд-гейта
     auth: {
-      user, // имя пользователя
-      roles, // массив ролей
+      userId, // имя пользователя
     },
     routing: {
       requestId, // id запроса (если это JSON-RPC)

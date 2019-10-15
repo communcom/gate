@@ -77,9 +77,10 @@ class Broker extends Basic {
         this._pipeMapping.delete(channelId);
         this._authMapping.delete(channelId);
 
-        const user = auth.user;
-        if (user) {
-            await this._notifyAboutOffline({ user, channelId });
+        const { userId } = auth;
+
+        if (userId) {
+            await this._notifyAboutOffline({ userId, channelId });
         }
     }
 
@@ -190,8 +191,8 @@ class Broker extends Basic {
         return 'Ok';
     }
 
-    async _notifyAboutOffline({ user, channelId }) {
-        await this._innerGate.sendTo('facade', 'offline', { channelId, user });
+    async _notifyAboutOffline({ userId, channelId }) {
+        await this._innerGate.sendTo('facade', 'offline', { channelId, user: userId });
     }
 
     _makeAuthRequestObject(secret) {
