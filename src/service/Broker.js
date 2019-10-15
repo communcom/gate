@@ -1,16 +1,15 @@
-const R = require('ramda');
 const jayson = require('jayson');
 const core = require('gls-core-service');
-const { Logger } = core.utils;
-const BasicService = core.services.Basic;
-const RpcObject = core.utils.RpcObject;
+const { Logger, RpcObject } = core.utils;
+const { Connector, Basic } = core.services;
+const FrontendGate = require('./service/FrontendGate');
 const env = require('../env');
 
-class Broker extends BasicService {
-    constructor(InnerGate, FrontendGate) {
+class Broker extends Basic {
+    constructor() {
         super();
 
-        this._innerGate = new InnerGate();
+        this._innerGate = new Connector();
         this._frontendGate = new FrontendGate();
         this._pipeMapping = new Map(); // channelId -> pipe
         this._authMapping = new Map(); // channelId -> auth data
@@ -31,7 +30,7 @@ class Broker extends BasicService {
         });
 
         await front.start(async ({ channelId, clientRequestIp }, data, pipe) => {
-            if (R.is(String, data)) {
+            if (typeof data === 'string') {
                 await this._handleFrontendEvent(channelId, data, pipe);
             } else {
                 await this._handleRequest({ channelId, clientRequestIp }, data, pipe);
