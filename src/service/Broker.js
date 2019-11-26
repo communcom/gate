@@ -131,6 +131,17 @@ class Broker extends Basic {
 
                 if (response.result) {
                     this._authMapping.set(channelId, response.result);
+                    this._innerGate
+                        .callService(
+                            'facade',
+                            'registration.onboardingDeviceSwitched',
+                            {},
+                            this._authMapping.get(channelId),
+                            clientInfo
+                        )
+                        .catch(error => {
+                            Logger.error('Error calling onboardingDeviceSwitched', error);
+                        });
                 }
             } else {
                 const translate = this._makeTranslateToServiceData(
