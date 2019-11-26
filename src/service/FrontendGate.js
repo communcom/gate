@@ -48,7 +48,7 @@ class FrontendGate extends Basic {
 
         pipeMap.set(socket, uuid());
         deadMap.set(socket, false);
-        const urlParams = new urlParser(request.url).query;
+        const urlParams = urlParser(request.url, true).query;
         clientInfoMap.set(socket, this._tryExtractClientInfo(urlParams));
 
         this._notifyCallback(socket, clientRequestIp, 'open');
