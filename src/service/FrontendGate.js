@@ -13,7 +13,7 @@ class FrontendGate extends Basic {
         this._server = null;
         this._pipeMapping = new Map(); // socket -> uuid
         this._deadMapping = new Map(); // socket -> boolean
-        this._clientInfoMapping = new Map(); // socket -> boolean
+        this._clientInfoMapping = new Map(); // socket -> client info (obj)
         this._brokenDropperIntervalId = null;
     }
 
