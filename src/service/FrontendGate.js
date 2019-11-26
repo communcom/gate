@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 const uuid = require('uuid');
-const core = require('gls-core-service');
+const core = require('cyberway-core-service');
 const { Logger, RpcObject } = core.utils;
 const { Basic } = core.services;
 const env = require('../env');

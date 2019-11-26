@@ -1,5 +1,5 @@
 const jayson = require('jayson');
-const core = require('gls-core-service');
+const core = require('cyberway-core-service');
 const { Logger, RpcObject } = core.utils;
 const { Connector, Basic } = core.services;
 const FrontendGate = require('./FrontendGate');
