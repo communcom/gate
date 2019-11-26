@@ -12,6 +12,7 @@ class FrontendGate extends Basic {
         this._server = null;
         this._pipeMapping = new Map(); // socket -> uuid
         this._deadMapping = new Map(); // socket -> boolean
+        this._clientInfoMapping = new Map(); // socket -> boolean
         this._brokenDropperIntervalId = null;
     }
 
@@ -42,9 +43,12 @@ class FrontendGate extends Basic {
         const clientRequestIp = this._getRequestIp(request);
         const pipeMap = this._pipeMapping;
         const deadMap = this._deadMapping;
+        const clientInfoMap = this._clientInfoMapping;
 
         pipeMap.set(socket, uuid());
         deadMap.set(socket, false);
+        clientInfoMap.set(socket, this._tryExtractClientInfo(request));
+
         this._notifyCallback(socket, clientRequestIp, 'open');
 
         socket.on('message', message => {
@@ -56,6 +60,7 @@ class FrontendGate extends Basic {
             this._notifyCallback(socket, clientRequestIp, 'close');
             pipeMap.delete(socket);
             deadMap.delete(socket);
+            clientInfoMap.delete(socket);
         });
 
         socket.on('error', error => {
@@ -66,11 +71,17 @@ class FrontendGate extends Basic {
 
             pipeMap.delete(socket);
             deadMap.delete(socket);
+            clientInfoMap.delete(socket);
         });
 
         socket.on('pong', () => {
             deadMap.set(socket, false);
         });
+    }
+
+    _tryExtractClientInfo(req) {
+        const { platform, deviceType, clientType, version } = req.params;
+        return { platform, deviceType, clientType, version };
     }
 
     _getRequestIp(request) {

@@ -29,11 +29,11 @@ class Broker extends Basic {
             },
         });
 
-        await front.start(async ({ channelId, clientRequestIp }, data, pipe) => {
+        await front.start(async ({ channelId, clientRequestIp, clientInfo }, data, pipe) => {
             if (typeof data === 'string') {
-                await this._handleFrontendEvent(channelId, data, pipe);
+                await this._handleFrontendEvent({ channelId, clientInfo }, data, pipe);
             } else {
-                await this._handleRequest({ channelId, clientRequestIp }, data, pipe);
+                await this._handleRequest({ channelId, clientRequestIp, clientInfo }, data, pipe);
             }
         });
 
@@ -44,7 +44,7 @@ class Broker extends Basic {
         await this.stopNested();
     }
 
-    async _handleFrontendEvent(channelId, event, pipe) {
+    async _handleFrontendEvent({ channelId, clientInfo }, event, pipe) {
         switch (event) {
             case 'open':
                 this._pipeMapping.set(channelId, pipe);
@@ -84,7 +84,7 @@ class Broker extends Basic {
         }
     }
 
-    async _handleRequest({ channelId, clientRequestIp }, data, pipe) {
+    async _handleRequest({ channelId, clientRequestIp, clientInfo }, data, pipe) {
         const parsedData = await this._parseRequest(data);
 
         if (parsedData.error) {
@@ -96,7 +96,7 @@ class Broker extends Basic {
             return await this._clientOffline({ channelId });
         }
 
-        await this._handleClient({ channelId, clientRequestIp }, data, pipe);
+        await this._handleClient({ channelId, clientRequestIp, clientInfo }, data, pipe);
     }
 
     _parseRequest(data) {
@@ -114,7 +114,7 @@ class Broker extends Basic {
         });
     }
 
-    async _handleClient({ channelId, clientRequestIp }, data, pipe) {
+    async _handleClient({ channelId, clientRequestIp, clientInfo }, data, pipe) {
         try {
             let response = {};
 
@@ -134,7 +134,7 @@ class Broker extends Basic {
                 }
             } else {
                 const translate = this._makeTranslateToServiceData(
-                    { channelId, clientRequestIp },
+                    { channelId, clientRequestIp, clientInfo },
                     data
                 );
 
@@ -151,10 +151,11 @@ class Broker extends Basic {
         }
     }
 
-    _makeTranslateToServiceData({ channelId, clientRequestIp }, data) {
+    _makeTranslateToServiceData({ channelId, clientRequestIp, clientInfo }, data) {
         return {
             _frontendGate: true,
             auth: this._authMapping.get(channelId) || {},
+            clientInfo,
             routing: {
                 requestId: data.id,
                 channelId,
