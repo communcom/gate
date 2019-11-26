@@ -128,8 +128,9 @@ class FrontendGate extends Basic {
 
     _notifyCallback(socket, clientRequestIp, requestData) {
         const channelId = this._pipeMapping.get(socket);
+        const clientInfo = this._clientInfoMapping.get(socket);
 
-        this._callback({ channelId, clientRequestIp }, requestData, responseData => {
+        this._callback({ channelId, clientRequestIp, clientInfo }, requestData, responseData => {
             if (!this._pipeMapping.get(socket)) {
                 Logger.log('Client close connection before get response.');
                 return;
