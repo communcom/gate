@@ -1,9 +1,10 @@
 const WebSocket = require('ws');
 const uuid = require('uuid');
-const core = require('gls-core-service');
+const core = require('cyberway-core-service');
 const { Logger, RpcObject } = core.utils;
 const { Basic } = core.services;
 const env = require('../env');
+const urlParser = require('url-parse');
 
 class FrontendGate extends Basic {
     constructor() {
@@ -12,6 +13,7 @@ class FrontendGate extends Basic {
         this._server = null;
         this._pipeMapping = new Map(); // socket -> uuid
         this._deadMapping = new Map(); // socket -> boolean
+        this._clientInfoMapping = new Map(); // socket -> client info (obj)
         this._brokenDropperIntervalId = null;
     }
 
@@ -42,9 +44,13 @@ class FrontendGate extends Basic {
         const clientRequestIp = this._getRequestIp(request);
         const pipeMap = this._pipeMapping;
         const deadMap = this._deadMapping;
+        const clientInfoMap = this._clientInfoMapping;
 
         pipeMap.set(socket, uuid());
         deadMap.set(socket, false);
+        const urlParams = urlParser(request.url, true).query;
+        clientInfoMap.set(socket, this._tryExtractClientInfo(urlParams));
+
         this._notifyCallback(socket, clientRequestIp, 'open');
 
         socket.on('message', message => {
@@ -56,6 +62,7 @@ class FrontendGate extends Basic {
             this._notifyCallback(socket, clientRequestIp, 'close');
             pipeMap.delete(socket);
             deadMap.delete(socket);
+            clientInfoMap.delete(socket);
         });
 
         socket.on('error', error => {
@@ -66,11 +73,17 @@ class FrontendGate extends Basic {
 
             pipeMap.delete(socket);
             deadMap.delete(socket);
+            clientInfoMap.delete(socket);
         });
 
         socket.on('pong', () => {
             deadMap.set(socket, false);
         });
+    }
+
+    _tryExtractClientInfo(urlParams) {
+        const { platform, deviceType, clientType, version } = urlParams;
+        return { platform, deviceType, clientType, version };
     }
 
     _getRequestIp(request) {
@@ -116,8 +129,9 @@ class FrontendGate extends Basic {
 
     _notifyCallback(socket, clientRequestIp, requestData) {
         const channelId = this._pipeMapping.get(socket);
+        const clientInfo = this._clientInfoMapping.get(socket);
 
-        this._callback({ channelId, clientRequestIp }, requestData, responseData => {
+        this._callback({ channelId, clientRequestIp, clientInfo }, requestData, responseData => {
             if (!this._pipeMapping.get(socket)) {
                 Logger.log('Client close connection before get response.');
                 return;
