@@ -4,6 +4,7 @@ const core = require('cyberway-core-service');
 const { Logger, RpcObject } = core.utils;
 const { Basic } = core.services;
 const env = require('../env');
+const urlParser = require('url-parse');
 
 class FrontendGate extends Basic {
     constructor() {
@@ -47,7 +48,8 @@ class FrontendGate extends Basic {
 
         pipeMap.set(socket, uuid());
         deadMap.set(socket, false);
-        clientInfoMap.set(socket, this._tryExtractClientInfo(request));
+        const urlParams = new urlParser(request.url).query;
+        clientInfoMap.set(socket, this._tryExtractClientInfo(urlParams));
 
         this._notifyCallback(socket, clientRequestIp, 'open');
 
@@ -79,9 +81,8 @@ class FrontendGate extends Basic {
         });
     }
 
-    _tryExtractClientInfo(req) {
-        req.params = req.params || {};
-        const { platform, deviceType, clientType, version } = req.params;
+    _tryExtractClientInfo(urlParams) {
+        const { platform, deviceType, clientType, version } = urlParams;
         return { platform, deviceType, clientType, version };
     }
 
