@@ -80,6 +80,7 @@ class FrontendGate extends Basic {
     }
 
     _tryExtractClientInfo(req) {
+        req.params = req.params || {};
         const { platform, deviceType, clientType, version } = req.params;
         return { platform, deviceType, clientType, version };
     }
