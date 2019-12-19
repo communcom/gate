@@ -82,8 +82,8 @@ class FrontendGate extends Basic {
     }
 
     _tryExtractClientInfo(urlParams) {
-        const { platform, deviceType, clientType, version } = urlParams;
-        return { platform, deviceType, clientType, version };
+        const { platform, deviceType, clientType, version, deviceId } = urlParams;
+        return { platform, deviceType, clientType, version, deviceId };
     }
 
     _getRequestIp(request) {
