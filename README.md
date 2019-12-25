@@ -103,8 +103,7 @@ _При этом приватный ключ не передается по се
  transfer:               // Отправить клиенту JSON-RPC нотификацию с данными
      channelId <string>  // Идентификатор канала
      method <string>     // Имя JSON-RPC метода
-     error <Object>      // Объект ошибки (нет если result)
-     result <Object>     // Объект результата (нет если error)
+     data <Object>       // Данные
 
  <- result:              // Варианты ответа
      (success):          // В случае успеха

@@ -18,6 +18,20 @@ class Connector extends BasicConnector {
                 transfer: {
                     handler: broker.transfer,
                     scope: broker,
+                    validation: {
+                        required: ['channelId', 'method', 'data'],
+                        properties: {
+                            channelId: {
+                                type: 'string',
+                            },
+                            method: {
+                                type: 'string',
+                            },
+                            data: {
+                                type: 'object',
+                            },
+                        },
+                    },
                 },
             },
             requiredClients: {

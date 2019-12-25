@@ -31,7 +31,7 @@ class Broker extends Basic {
         }
     }
 
-    async transfer({ channelId, method, error, result }) {
+    async transfer({ channelId, method, data }) {
         const pipe = this._pipeMapping.get(channelId);
 
         if (!pipe) {
@@ -39,15 +39,7 @@ class Broker extends Basic {
         }
 
         try {
-            let response;
-
-            if (error) {
-                response = this._makeNotifyToClientObject(method, { error });
-            } else {
-                response = this._makeNotifyToClientObject(method, { result });
-            }
-
-            pipe(response);
+            pipe(this._makeNotifyToClientObject(method, data));
         } catch (err) {
             throw { code: 1106, message: 'Notify client error' };
         }
