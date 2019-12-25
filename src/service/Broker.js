@@ -1,47 +1,56 @@
 const jayson = require('jayson');
 const core = require('cyberway-core-service');
+const { Basic } = core.services;
 const { Logger, RpcObject } = core.utils;
-const { Connector, Basic } = core.services;
-const FrontendGate = require('./FrontendGate');
+
 const env = require('../env');
 
 class Broker extends Basic {
-    constructor() {
+    constructor(services) {
         super();
 
-        this._innerGate = new Connector();
-        this._frontendGate = new FrontendGate();
+        this._services = services;
+
         this._pipeMapping = new Map(); // channelId -> pipe
         this._authMapping = new Map(); // channelId -> auth data
     }
 
     async start() {
-        const inner = this._innerGate;
-        const front = this._frontendGate;
-
-        await inner.start({
-            serverRoutes: {
-                transfer: this._transferToClient.bind(this),
-            },
-            requiredClients: {
-                facade: env.GLS_FACADE_CONNECT,
-                auth: env.GLS_AUTH_CONNECT,
-            },
-        });
-
-        await front.start(async ({ channelId, clientRequestIp, clientInfo }, data, pipe) => {
-            if (typeof data === 'string') {
-                await this._handleFrontendEvent({ channelId, clientInfo }, data, pipe);
-            } else {
-                await this._handleRequest({ channelId, clientRequestIp, clientInfo }, data, pipe);
-            }
-        });
-
-        this.addNested(inner, front);
+        this._connector = this._services.connector;
     }
 
     async stop() {
         await this.stopNested();
+    }
+
+    async handleRequest({ channelId, clientRequestIp, clientInfo }, data, pipe) {
+        if (typeof data === 'string') {
+            await this._handleFrontendEvent({ channelId, clientInfo }, data, pipe);
+        } else {
+            await this._handleRequest({ channelId, clientRequestIp, clientInfo }, data, pipe);
+        }
+    }
+
+    async transfer({ channelId, method, error, result }) {
+        const pipe = this._pipeMapping.get(channelId);
+
+        if (!pipe) {
+            throw { code: 1105, message: 'Cant transfer to client - not found' };
+        }
+
+        try {
+            let response;
+
+            if (error) {
+                response = this._makeNotifyToClientObject(method, { error });
+            } else {
+                response = this._makeNotifyToClientObject(method, { result });
+            }
+
+            pipe(response);
+        } catch (err) {
+            throw { code: 1106, message: 'Notify client error' };
+        }
     }
 
     async _handleFrontendEvent({ channelId, clientInfo }, event, pipe) {
@@ -50,7 +59,7 @@ class Broker extends Basic {
                 this._pipeMapping.set(channelId, pipe);
 
                 if (!env.GLS_DISABLE_AUTH) {
-                    const { secret } = await this._innerGate.callService(
+                    const { secret } = await this._connector.callService(
                         'auth',
                         'auth.generateSecret',
                         {
@@ -119,19 +128,19 @@ class Broker extends Basic {
             let response = {};
 
             if (data.method === 'auth.generateSecret' && !env.GLS_DISABLE_AUTH) {
-                response = await this._innerGate.sendTo('auth', data.method, {
+                response = await this._connector.sendTo('auth', data.method, {
                     ...data.params,
                     channelId,
                 });
             } else if (data.method === 'auth.authorize' && !env.GLS_DISABLE_AUTH) {
-                response = await this._innerGate.sendTo('auth', data.method, {
+                response = await this._connector.sendTo('auth', data.method, {
                     ...data.params,
                     channelId,
                 });
 
                 if (response.result) {
                     this._authMapping.set(channelId, response.result);
-                    this._innerGate
+                    this._connector
                         .callService(
                             'facade',
                             'registration.onboardingDeviceSwitched',
@@ -149,7 +158,7 @@ class Broker extends Basic {
                     data
                 );
 
-                response = await this._innerGate.sendTo('facade', data.method, translate);
+                response = await this._connector.sendTo('facade', data.method, translate);
             }
 
             response.id = data.id;
@@ -178,33 +187,8 @@ class Broker extends Basic {
         };
     }
 
-    async _transferToClient(data) {
-        const { channelId, method, error, result } = data;
-        const pipe = this._pipeMapping.get(channelId);
-
-        if (!pipe) {
-            throw { code: 1105, message: 'Cant transfer to client - not found' };
-        }
-
-        try {
-            let response;
-
-            if (error) {
-                response = this._makeNotifyToClientObject(method, { error });
-            } else {
-                response = this._makeNotifyToClientObject(method, { result });
-            }
-
-            pipe(response);
-        } catch (error) {
-            throw { code: 1106, message: 'Notify client fatal error' };
-        }
-
-        return 'Ok';
-    }
-
     async _notifyAboutOffline({ userId, channelId }) {
-        await this._innerGate.sendTo('facade', 'offline', { channelId, user: userId });
+        await this._connector.sendTo('facade', 'offline', { channelId, user: userId });
     }
 
     _makeAuthRequestObject(secret) {
