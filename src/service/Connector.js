@@ -49,9 +49,9 @@ class Connector extends BasicConnector {
                     handler: broker.checkChannels,
                     scope: broker,
                     validation: {
-                        required: ['channelIds'],
+                        required: ['channelsIds'],
                         properties: {
-                            channelIds: {
+                            channelsIds: {
                                 type: 'array',
                                 minItems: 1,
                                 items: {
