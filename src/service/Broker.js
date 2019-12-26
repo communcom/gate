@@ -51,6 +51,20 @@ class Broker extends Basic {
         };
     }
 
+    async checkChannels({ channelIds }) {
+        const online = [];
+
+        for (const channelId of channelIds) {
+            if (this._pipeMapping.has(channelId)) {
+                online.push(channelId);
+            }
+        }
+
+        return {
+            online,
+        };
+    }
+
     async _handleFrontendEvent({ channelId, clientInfo }, event, pipe) {
         switch (event) {
             case 'open':

@@ -45,6 +45,22 @@ class Connector extends BasicConnector {
                         },
                     },
                 },
+                checkChannels: {
+                    handler: broker.checkChannels,
+                    scope: broker,
+                    validation: {
+                        required: ['channelIds'],
+                        properties: {
+                            channelIds: {
+                                type: 'array',
+                                minItems: 1,
+                                items: {
+                                    type: 'string',
+                                },
+                            },
+                        },
+                    },
+                },
             },
             requiredClients: {
                 facade: env.GLS_FACADE_CONNECT,
