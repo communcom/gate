@@ -52,16 +52,16 @@ class Broker extends Basic {
     }
 
     async checkChannels({ channelsIds }) {
-        const online = [];
+        const connected = [];
 
         for (const channelId of channelsIds) {
             if (this._pipeMapping.has(channelId)) {
-                online.push(channelId);
+                connected.push(channelId);
             }
         }
 
         return {
-            online,
+            connected,
         };
     }
 
