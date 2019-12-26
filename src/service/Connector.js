@@ -33,6 +33,18 @@ class Connector extends BasicConnector {
                         },
                     },
                 },
+                checkChannel: {
+                    handler: broker.checkChannel,
+                    scope: broker,
+                    validation: {
+                        required: ['channelId'],
+                        properties: {
+                            channelId: {
+                                type: 'string',
+                            },
+                        },
+                    },
+                },
             },
             requiredClients: {
                 facade: env.GLS_FACADE_CONNECT,

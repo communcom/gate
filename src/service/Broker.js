@@ -45,6 +45,12 @@ class Broker extends Basic {
         }
     }
 
+    async checkChannel({ channelId }) {
+        return {
+            isConnected: this._pipeMapping.has(channelId),
+        };
+    }
+
     async _handleFrontendEvent({ channelId, clientInfo }, event, pipe) {
         switch (event) {
             case 'open':
