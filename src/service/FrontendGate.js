@@ -1,14 +1,17 @@
 const WebSocket = require('ws');
 const uuid = require('uuid');
-const core = require('cyberway-core-service');
-const { Logger, RpcObject } = core.utils;
-const { Basic } = core.services;
-const env = require('../env');
 const urlParser = require('url-parse');
+const core = require('cyberway-core-service');
+const { Basic } = core.services;
+const { Logger, RpcObject } = core.utils;
+
+const env = require('../env');
 
 class FrontendGate extends Basic {
-    constructor() {
+    constructor(services) {
         super();
+
+        this._services = services;
 
         this._server = null;
         this._pipeMapping = new Map(); // socket -> uuid
@@ -17,14 +20,15 @@ class FrontendGate extends Basic {
         this._brokenDropperIntervalId = null;
     }
 
-    async start(callback) {
+    async start() {
         Logger.info('Make Frontend Gate server...');
+
+        this._broker = this._services.broker;
 
         const host = env.GLS_FRONTEND_GATE_HOST;
         const port = env.GLS_FRONTEND_GATE_PORT;
 
         this._server = new WebSocket.Server({ host, port });
-        this._callback = callback;
 
         this._server.on('connection', this._handleConnection.bind(this));
         this._makeBrokenDropper();
@@ -121,25 +125,35 @@ class FrontendGate extends Basic {
         }
 
         if (requestData.error) {
-            this._handleConnectionError(socket, requestData, clientRequestIp);
+            Logger.error(
+                `Frontend Gate connection error [${clientRequestIp}] - ${requestData.error}`
+            );
         } else {
             this._notifyCallback(socket, clientRequestIp, requestData);
         }
     }
 
-    _notifyCallback(socket, clientRequestIp, requestData) {
+    // This method doesn't require await when calling
+    async _notifyCallback(socket, clientRequestIp, requestData) {
         const channelId = this._pipeMapping.get(socket);
         const clientInfo = this._clientInfoMapping.get(socket);
 
-        this._callback({ channelId, clientRequestIp, clientInfo }, requestData, responseData => {
-            if (!this._pipeMapping.get(socket)) {
-                Logger.log('Client close connection before get response.');
-                return;
-            }
+        try {
+            await this._broker.handleRequest(
+                { channelId, clientRequestIp, clientInfo },
+                requestData,
+                responseData => {
+                    if (!this._pipeMapping.get(socket)) {
+                        Logger.log('Client close connection before get response.');
+                        return;
+                    }
 
-            socket.send(this._serializeMessage(responseData, requestData.id));
-        }).catch(error => {
-            Logger.error(`Frontend Gate internal server error ${error}`);
+                    socket.send(this._serializeMessage(responseData, requestData.id));
+                }
+            );
+        } catch (err) {
+            Logger.error(`Frontend Gate internal server error ${err}`);
+
             socket.send(
                 this._serializeMessage(
                     RpcObject.error(1107, 'Internal server error on response to client'),
@@ -149,7 +163,7 @@ class FrontendGate extends Basic {
                     // do noting, just notify or pass
                 }
             );
-        });
+        }
     }
 
     _safeTerminateSocket(socket) {
@@ -158,10 +172,6 @@ class FrontendGate extends Basic {
         } catch (error) {
             // already terminated
         }
-    }
-
-    _handleConnectionError(socket, data, from) {
-        Logger.error(`Frontend Gate connection error [${from}] - ${data.error}`);
     }
 
     _serializeMessage(data, defaultId = null) {
