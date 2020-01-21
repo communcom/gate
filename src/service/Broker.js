@@ -153,12 +153,10 @@ class Broker extends Basic {
                 if (response.result) {
                     this._authMapping.set(channelId, response.result);
                     this._connector
-                        .callService(
+                        .sendTo(
                             'facade',
                             'registration.onboardingDeviceSwitched',
-                            {},
-                            this._authMapping.get(channelId),
-                            clientInfo
+                            {auth:this._authMapping.get(channelId), clientInfo: clientInfo },
                         )
                         .catch(error => {
                             Logger.error('Error calling onboardingDeviceSwitched', error);
